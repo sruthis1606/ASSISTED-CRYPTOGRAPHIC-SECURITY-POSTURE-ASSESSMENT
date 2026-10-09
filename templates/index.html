@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>SecureMailScope | AI-Assisted Cryptographic Security Posture Assessment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-lockup">
+      <div class="brand-mark" aria-hidden="true"><i class="fa-solid fa-shield-halved"></i></div>
+      <div>
+        <h1>SecureMailScope</h1>
+        <p>AI-Assisted Cryptographic Security Posture Assessment</p>
+      </div>
+    </div>
+    <div class="topbar-meta">
+      <span class="meta-pill dataset-pill"><i class="fa-solid fa-database"></i><span id="header-dataset">Loading dataset</span></span>
+      <span class="meta-pill model-pill"><span class="live-dot"></span><span id="header-model">Checking model</span></span>
+    </div>
+  </header>
+
+  <nav class="primary-nav" aria-label="Main navigation">
+    <div class="nav-scroller">
+      <button class="nav-tab active" data-tab="dashboard"><i class="fa-solid fa-chart-pie"></i>Dashboard</button>
+      <button class="nav-tab" data-tab="dataset"><i class="fa-solid fa-file-csv"></i>Security Dataset</button>
+      <button class="nav-tab" data-tab="analysis"><i class="fa-solid fa-chart-line"></i>Data Analysis</button>
+      <button class="nav-tab" data-tab="training"><i class="fa-solid fa-brain"></i>Model Training</button>
+      <button class="nav-tab" data-tab="chs-evaluation"><i class="fa-solid fa-chart-line"></i>CHS Evaluation</button>
+      <button class="nav-tab" data-tab="assessment"><i class="fa-solid fa-clipboard-check"></i>Security Assessment</button>
+      <button class="nav-tab" data-tab="overview"><i class="fa-solid fa-shield"></i>Security Overview</button>
+      <button class="nav-tab" data-tab="risk-map"><i class="fa-solid fa-map-location-dot"></i>Cryptographic Posture &amp; Risk Map</button>
+      <button class="nav-tab" data-tab="risks"><i class="fa-solid fa-triangle-exclamation"></i>Risk &amp; Recommendations</button>
+      <button class="nav-tab" data-tab="management"><i class="fa-solid fa-sliders"></i>Model Management</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div id="app-error" class="notice notice-error hidden" role="alert"></div>
+    <div id="demo-notice" class="notice notice-demo hidden">
+      <i class="fa-solid fa-circle-info"></i>
+      <span><strong>Demonstration data:</strong> these records are synthetic examples, not results from real email systems or live security scans.</span>
+    </div>
+
+    <section id="tab-dashboard" class="tab-panel active" aria-labelledby="title-dashboard">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">SECURITY POSTURE / OVERVIEW</p>
+          <h2 id="title-dashboard">Security dashboard</h2>
+          <p class="page-description">A data-driven view of the cryptographic configurations in your current dataset.</p>
+        </div>
+        <div class="heading-actions">
+          <button class="button button-outline" data-action="download"><i class="fa-solid fa-download"></i>Export dataset</button>
+          <button class="button button-primary" data-open-tab="assessment"><i class="fa-solid fa-plus"></i>New assessment</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="stat-card">
+          <div class="stat-icon blue"><i class="fa-solid fa-server"></i></div>
+          <p class="stat-label">SECURITY RECORDS ANALYZED</p><strong class="stat-value" id="stat-records">—</strong>
+          <p class="stat-caption">Records in the active dataset</p>
+        </article>
+        <article class="stat-card">
+          <div class="stat-icon teal"><i class="fa-solid fa-gauge-high"></i></div>
+          <p class="stat-label">AVERAGE SECURITY SCORE</p><strong class="stat-value" id="stat-score">—</strong>
+          <p class="stat-caption">Transparent configuration checks, out of 100</p>
+        </article>
+        <article class="stat-card">
+          <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+          <p class="stat-label">HIGH POSTURE</p><strong class="stat-value" id="stat-high">—</strong>
+          <p class="stat-caption">Classified high in the dataset</p>
+        </article>
+        <article class="stat-card">
+          <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <p class="stat-label">LOW POSTURE</p><strong class="stat-value" id="stat-low">—</strong>
+          <p class="stat-caption">Classified low in the dataset</p>
+        </article>
+      </div>
+
+      <div class="stats-grid stats-grid-secondary">
+        <article class="mini-stat"><span class="risk-bullet risk-high"></span><span>High risk</span><strong id="risk-high-count">—</strong></article>
+        <article class="mini-stat"><span class="risk-bullet risk-medium"></span><span>Medium risk</span><strong id="risk-medium-count">—</strong></article>
+        <article class="mini-stat"><span class="risk-bullet risk-low"></span><span>Low risk</span><strong id="risk-low-count">—</strong></article>
+        <article class="mini-stat model-mini"><i class="fa-solid fa-brain"></i><span id="dashboard-model-name">Model loading</span><strong id="dashboard-model-f1">—</strong><small>weighted F1</small></article>
+      </div>
+
+      <div class="content-grid two-columns">
+        <article class="panel">
+          <div class="panel-heading">
+            <div><h3><i class="fa-solid fa-chart-pie teal-text"></i>Security posture distribution</h3><p>Classification labels in the active dataset</p></div>
+            <span class="chart-badge">BY POSTURE</span>
+          </div>
+          <div id="chart-posture" class="chart-area" role="img" aria-label="Security posture distribution chart"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div><h3><i class="fa-solid fa-chart-column blue-text"></i>Model performance</h3><p>Hold-out evaluation for the selected classifier</p></div>
+            <span class="chart-badge">WEIGHTED METRICS</span>
+          </div>
+          <div id="chart-metrics" class="chart-area" role="img" aria-label="Selected model metric chart"></div>
+        </article>
+      </div>
+
+      <article class="panel table-panel">
+        <div class="panel-heading">
+          <div><h3>Classifier comparison</h3><p>Models evaluated on the same stratified test split</p></div>
+          <button class="text-button" data-open-tab="training">View model training <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+        <div class="table-scroll"><table><thead><tr><th>CLASSIFIER</th><th>ACCURACY</th><th>PRECISION</th><th>RECALL</th><th>F1 SCORE</th><th>STATUS</th></tr></thead><tbody id="dashboard-model-table"><tr><td colspan="6" class="table-empty">Loading model evaluation…</td></tr></tbody></table></div>
+      </article>
+    </section>
+
+    <section id="tab-dataset" class="tab-panel" aria-labelledby="title-dataset">
+      <div class="page-heading">
+        <div><p class="eyebrow">DATA / INGESTION</p><h2 id="title-dataset">Security dataset</h2><p class="page-description">Upload a labeled CSV, inspect its quality, and download the active dataset.</p></div>
+        <div class="heading-actions"><button class="button button-outline" data-action="download"><i class="fa-solid fa-download"></i>Download current CSV</button><button class="button button-outline" data-action="download-demo"><i class="fa-solid fa-flask"></i>Get demo CSV</button></div>
+      </div>
+      <article class="panel upload-panel">
+        <div class="panel-heading"><div><h3><i class="fa-solid fa-cloud-arrow-up blue-text"></i>Upload email security dataset</h3><p>CSV with the eight configuration features and a Low / Medium / High Security Posture label.</p></div><span class="chart-badge">CSV · MAX 10 MB</span></div>
+        <form id="upload-form">
+          <input type="file" id="csv-file" name="file" accept=".csv,text/csv" hidden>
+          <button type="button" class="dropzone" id="dropzone">
+            <span class="upload-symbol"><i class="fa-solid fa-file-circle-plus"></i></span>
+            <strong>Drop your security CSV here, or <span>browse files</span></strong>
+            <small>Column names such as “TLS Version” and “Security Posture” are recognized.</small>
+          </button>
+          <div class="upload-footer"><span id="selected-file-name">No file selected</span><button class="button button-primary" id="upload-button" type="submit" disabled><i class="fa-solid fa-upload"></i>Upload and validate</button></div>
+        </form>
+        <div id="upload-message" class="inline-message hidden" role="status"></div>
+      </article>
+      <div class="dataset-facts">
+        <article class="fact-card"><span>ACTIVE DATASET</span><strong id="dataset-name">—</strong></article>
+        <article class="fact-card"><span>ROWS</span><strong id="dataset-rows">—</strong></article>
+        <article class="fact-card"><span>COLUMNS</span><strong id="dataset-columns">—</strong></article>
+        <article class="fact-card"><span>MISSING FEATURE VALUES</span><strong id="missing-total">—</strong></article>
+      </div>
+      <div class="content-grid two-columns">
+        <article class="panel table-panel"><div class="panel-heading"><div><h3><i class="fa-solid fa-list-check amber-text"></i>Missing-value analysis</h3><p>Null feature values are imputed by the training pipeline.</p></div></div>
+          <div class="table-scroll"><table><thead><tr><th>FEATURE</th><th>MISSING</th><th>MISSING %</th></tr></thead><tbody id="missing-table"></tbody></table></div>
+        </article>
+        <article class="panel table-panel"><div class="panel-heading"><div><h3><i class="fa-solid fa-table blue-text"></i>Descriptive statistics</h3><p>Numerical summaries and categorical frequencies</p></div></div>
+          <div class="table-scroll"><table><thead><tr><th>FEATURE</th><th>TYPE</th><th>COUNT</th><th>SUMMARY</th></tr></thead><tbody id="statistics-table"></tbody></table></div>
+        </article>
+      </div>
+      <article class="panel table-panel"><div class="panel-heading"><div><h3><i class="fa-solid fa-eye teal-text"></i>Dataset preview</h3><p>First ten rows after column-name normalization</p></div></div><div class="table-scroll" id="preview-table"></div></article>
+    </section>
+
+    <section id="tab-analysis" class="tab-panel" aria-labelledby="title-analysis">
+      <div class="page-heading"><div><p class="eyebrow">DATA / EXPLORATION</p><h2 id="title-analysis">Data analysis</h2><p class="page-description">Explore feature distributions and relationships from the active CSV.</p></div></div>
+      <article class="panel">
+        <div class="panel-heading"><div><h3><i class="fa-solid fa-chart-column blue-text"></i>Security feature distribution</h3><p>Observed values from your dataset</p></div><label class="select-label" for="analysis-feature">FEATURE<select id="analysis-feature"></select></label></div>
+        <div id="chart-feature" class="chart-area chart-tall" role="img" aria-label="Selected security feature distribution"></div>
+      </article>
+      <article class="panel"><div class="panel-heading"><div><h3><i class="fa-solid fa-table-cells teal-text"></i>Security feature correlation matrix</h3><p>Encoded Pearson correlations. Categorical values use stable integer codes, so interpret category relationships as exploratory.</p></div></div><div id="chart-correlation" class="chart-area chart-heatmap" role="img" aria-label="Exploratory encoded feature correlation heatmap"></div></article>
+    </section>
+
+    <section id="tab-training" class="tab-panel" aria-labelledby="title-training">
+      <div class="page-heading"><div><p class="eyebrow">MACHINE LEARNING / EVALUATION</p><h2 id="title-training">Model training</h2><p class="page-description">Compare five classifiers using the same preprocessing and stratified train/test split.</p></div><button class="button button-primary" data-action="train"><i class="fa-solid fa-play"></i>Train and compare models</button></div>
+      <div class="notice notice-neutral"><i class="fa-solid fa-circle-info"></i><span>Numeric key strength is imputed and scaled; categorical settings are imputed and one-hot encoded. Metrics are weighted classification scores on held-out data.</span></div>
+      <div id="training-message" class="inline-message hidden" role="status"></div>
+      <article class="panel"><div class="panel-heading"><div><h3>Evaluation metrics by classifier</h3><p>Higher scores indicate better classification performance on this dataset.</p></div></div><div id="chart-comparison" class="chart-area chart-tall" role="img" aria-label="Classifier metric comparison"></div></article>
+      <article class="panel table-panel"><div class="panel-heading"><div><h3>Training results</h3><p id="training-selected">No training run recorded yet.</p></div></div><div class="table-scroll"><table><thead><tr><th>CLASSIFIER</th><th>ACCURACY</th><th>PRECISION</th><th>RECALL</th><th>F1 SCORE</th><th>SELECTION</th></tr></thead><tbody id="training-table"></tbody></table></div></article>
+    </section>
+
+    <section id="tab-chs-evaluation" class="tab-panel chs-section" aria-labelledby="title-chs-evaluation">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">MACHINE LEARNING / REFERENCE</p>
+          <h2 id="title-chs-evaluation"><i class="fa-solid fa-chart-line blue-text"></i> Model Evaluation &amp; Metrics: CHS</h2>
+          <p class="page-description">Performance on unseen test validation data</p>
+        </div>
+      </div>
+      <div id="chs-data-status" class="notice notice-demo chs-notice" role="note">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Reference/demo metrics and illustrative points from the supplied design only. The current SecureMailScope model predicts Low/Medium/High categories; it has no numeric CHS ground-truth target, so these are <strong>not</strong> results from its unseen test set.</span>
+      </div>
+      <div id="chs-evaluation-error" class="inline-message hidden" role="alert"></div>
+      <div class="chs-metrics-grid" aria-label="Reference CHS metrics">
+        <article class="chs-metric-card">
+          <p class="chs-metric-label">MAE (CHS)</p>
+          <strong class="chs-metric-value" id="chs-mae">—</strong>
+        </article>
+        <article class="chs-metric-card">
+          <p class="chs-metric-label">MSE (CHS)</p>
+          <strong class="chs-metric-value" id="chs-mse">—</strong>
+        </article>
+        <article class="chs-metric-card">
+          <p class="chs-metric-label">RMSE (CHS)</p>
+          <strong class="chs-metric-value" id="chs-rmse">—</strong>
+        </article>
+        <article class="chs-metric-card chs-r2-card">
+          <p class="chs-metric-label">R² SCORE (CHS)</p>
+          <strong class="chs-metric-value" id="chs-r2">—</strong>
+        </article>
+      </div>
+      <article class="panel chs-chart-panel">
+        <div class="panel-heading">
+          <div>
+            <h3 class="chs-chart-title">Actual vs. Predicted Cryptographic Health Score (CHS) (R² = 0.912)</h3>
+            <p id="chs-plot-note">Reference/demo illustration; points are not from the current model.</p>
+          </div>
+          <span class="chart-badge">REFERENCE / DEMO</span>
+        </div>
+        <div id="chart-chs" class="chart-area chs-chart" role="img" aria-label="Illustrative actual versus predicted CHS scatter plot with an ideal one-to-one fit line"></div>
+      </article>
+    </section>
+
+    <section id="tab-assessment" class="tab-panel" aria-labelledby="title-assessment">
+      <div class="page-heading"><div><p class="eyebrow">POSTURE / CONFIGURATION CHECK</p><h2 id="title-assessment">Security assessment</h2><p class="page-description">Assess supplied configuration details. This form does not connect to or scan a mail server.</p></div></div>
+      <div class="content-grid assessment-grid">
+        <article class="panel">
+          <div class="panel-heading"><div><h3><i class="fa-solid fa-sliders blue-text"></i>Email security configuration</h3><p>Complete each field for a model prediction and transparent risk checks.</p></div></div>
+          <form id="assessment-form" class="assessment-form">
+            <label>TLS Version<select name="tls_version" required><option value="">Select TLS version</option><option>TLS 1.0</option><option>TLS 1.1</option><option>TLS 1.2</option><option>TLS 1.3</option></select></label>
+            <label>Encryption Mechanism<select name="encryption_mechanism" required><option value="">Select mechanism</option><option>Weak</option><option>AES</option><option>AES-GCM</option><option>ChaCha20</option></select></label>
+            <label>Cryptographic Algorithm<select name="cryptographic_algorithm" required><option value="">Select algorithm</option><option>DES</option><option>3DES</option><option>RSA</option><option>AES</option><option>ECDSA</option><option>Ed25519</option></select></label>
+            <label>Certificate Information<select name="certificate_information" required><option value="">Select certificate status</option><option>Valid</option><option>Invalid</option><option>Expired</option><option>Self-Signed</option></select></label>
+            <label>Authentication Method<select name="authentication_method" required><option value="">Select authentication</option><option>Basic</option><option>Password</option><option>OAuth</option><option>Multi-Factor</option></select></label>
+            <label>Key Strength <span>(bits)</span><input name="key_strength" type="number" min="1" max="16384" step="1" placeholder="e.g. 2048" required></label>
+            <label>Cipher Suite<select name="cipher_suite" required><option value="">Select cipher strength</option><option>Weak</option><option>Moderate</option><option>Strong</option></select></label>
+            <label>Certificate Validity<select name="certificate_validity" required><option value="">Select validity</option><option>Valid</option><option>Expires within 30 days</option><option>Expired</option><option>Invalid</option></select></label>
+            <div class="assessment-actions"><button type="submit" class="button button-primary"><i class="fa-solid fa-magnifying-glass-chart"></i>Assess configuration</button><button type="reset" class="button button-outline">Clear form</button></div>
+          </form>
+          <div id="assessment-error" class="inline-message hidden" role="alert"></div>
+        </article>
+        <article class="panel result-panel" id="assessment-result">
+          <div class="empty-result"><span><i class="fa-solid fa-shield-halved"></i></span><h3>Assessment results</h3><p>Submit a configuration to see the model prediction, score, and specific recommendations.</p></div>
+        </article>
+      </div>
+      <p class="disclaimer"><i class="fa-solid fa-circle-info"></i> A model prediction is a decision-support estimate, not a certificate validation, live server scan, or guarantee of security.</p>
+    </section>
+
+    <section id="tab-overview" class="tab-panel" aria-labelledby="title-overview">
+      <div class="page-heading"><div><p class="eyebrow">SECURITY / LANDSCAPE</p><h2 id="title-overview">Security overview</h2><p class="page-description">Posture distribution across individual records in the active dataset.</p></div><span class="chart-badge">DATASET RECORDS · NOT GEOGRAPHIC</span></div>
+      <article class="panel overview-panel"><div class="panel-heading"><div><h3><i class="fa-solid fa-braille teal-text"></i>Configuration posture landscape</h3><p>Each marker is a dataset row, arranged by record order. No real-world location or live scan is represented.</p></div><div class="landscape-legend"><span><i class="legend-dot dot-high"></i>High</span><span><i class="legend-dot dot-medium"></i>Medium</span><span><i class="legend-dot dot-low"></i>Low</span></div></div><div id="security-landscape" class="landscape-grid" aria-label="Posture markers by dataset record"></div></article>
+      <div class="content-grid two-columns overview-bottom">
+        <article class="panel"><div class="panel-heading"><div><h3>Posture mix</h3><p>Counts from the active dataset labels</p></div></div><div id="chart-overview" class="chart-area"></div></article>
+        <article class="panel"><div class="panel-heading"><div><h3>Assessment scope</h3><p>What the dashboard does and does not measure</p></div></div>
+          <ul class="scope-list"><li><i class="fa-solid fa-check"></i><span>Analyzes the uploaded feature values and posture labels.</span></li><li><i class="fa-solid fa-check"></i><span>Identifies common weak or outdated cryptographic settings.</span></li><li><i class="fa-solid fa-ban"></i><span>Does not resolve domains, contact mail servers, or verify certificates online.</span></li><li><i class="fa-solid fa-ban"></i><span>Does not infer asset locations from dataset order.</span></li></ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="tab-risk-map" class="tab-panel risk-map-section" aria-labelledby="title-risk-map">
+      <div class="page-heading risk-map-heading">
+        <div>
+          <p class="eyebrow">SECURITY / CRYPTOGRAPHIC POSTURE</p>
+          <h2 id="title-risk-map"><i class="fa-solid fa-map-location-dot teal-text"></i> Cryptographic Posture &amp; Risk Map</h2>
+          <p class="page-description">Geospatial view of cryptographic asset configurations and risks across hybrid infrastructure.</p>
+        </div>
+        <span class="chart-badge">SYNTHETIC MAP PLACEMENTS</span>
+      </div>
+      <div id="risk-map-data-notice" class="notice notice-neutral" role="note">
+        <i class="fa-solid fa-circle-info"></i>
+        <span id="risk-map-source-note">Loading asset records. Map placements are synthetic demonstrations, not actual infrastructure locations.</span>
+      </div>
+      <div id="risk-map-error" class="inline-message hidden" role="alert"></div>
+      <div class="risk-map-legend-cards" aria-label="Cryptographic posture risk reference">
+        <article class="risk-map-reference risk-reference-high">
+          <div class="risk-reference-title"><span class="risk-map-dot"></span><strong>High Risk (Non-Compliant/Deprecated)</strong></div>
+          <p>NIST SP 800-131A</p>
+          <p>SHA-1, 3DES, expired certificates</p>
+        </article>
+        <article class="risk-map-reference risk-reference-medium">
+          <div class="risk-reference-title"><span class="risk-map-dot"></span><strong>Medium Risk (PQC Vulnerable)</strong></div>
+          <p>NSA PQC FAQs</p>
+          <p>RSA-2048, ECDSA-P256, but non-compliant RNG</p>
+        </article>
+        <article class="risk-map-reference risk-reference-low">
+          <div class="risk-reference-title"><span class="risk-map-dot"></span><strong>Low Risk (PQC Ready)</strong></div>
+          <p>NIST PQC Project</p>
+          <p>AES-256-GCM with compliant RNG</p>
+          <p>PQC key, PQC protocol</p>
+        </article>
+      </div>
+      <p class="risk-map-reference-note">Risk group labels above are illustrative references, not a formal compliance or PQC audit. The current dataset does not include PQC, RNG/FIPS, key-usage, or geographic fields.</p>
+      <article class="panel risk-map-panel">
+        <div class="risk-map-toolbar">
+          <div><strong id="risk-map-count">Loading assets…</strong><span id="risk-map-model-note">Loading model status…</span></div>
+          <span class="chart-badge">OPENSTREETMAP BASEMAP</span>
+        </div>
+        <div id="cryptographic-risk-map" class="cryptographic-risk-map" role="application" aria-label="Interactive basemap with synthetic asset locations and security risk markers">
+          <div class="map-loading">Loading interactive map…</div>
+        </div>
+      </article>
+    </section>
+
+    <section id="tab-risks" class="tab-panel" aria-labelledby="title-risks">
+      <div class="page-heading"><div><p class="eyebrow">POSTURE / REMEDIATION</p><h2 id="title-risks">Risk &amp; recommendations</h2><p class="page-description">Configuration-based findings for rows in the current dataset.</p></div></div>
+      <div class="notice notice-neutral"><i class="fa-solid fa-circle-info"></i><span>Findings are rule-based checks on supplied data. They are not verified vulnerabilities or results from a live scan.</span></div>
+      <div class="content-grid two-columns">
+        <article class="panel table-panel"><div class="panel-heading"><div><h3><i class="fa-solid fa-ranking-star amber-text"></i>Most frequent findings</h3><p>Count of records where each check is triggered</p></div></div><div class="table-scroll"><table><thead><tr><th>FINDING</th><th>RECORDS</th></tr></thead><tbody id="findings-table"></tbody></table></div></article>
+        <article class="panel"><div class="panel-heading"><div><h3><i class="fa-solid fa-list-check teal-text"></i>Practical remediation</h3><p>Common improvements for email-system configurations</p></div></div><ul class="recommendation-list"><li><span class="recommendation-icon red"><i class="fa-solid fa-lock-open"></i></span><div><strong>Require modern transport encryption</strong><p>Disable TLS 1.0/1.1 and prefer TLS 1.3 or TLS 1.2 with AEAD cipher suites.</p></div></li><li><span class="recommendation-icon amber"><i class="fa-solid fa-key"></i></span><div><strong>Replace weak cryptography</strong><p>Retire DES, 3DES, RC4, MD5, and SHA-1; review key sizes against current policy.</p></div></li><li><span class="recommendation-icon blue"><i class="fa-solid fa-certificate"></i></span><div><strong>Maintain trusted certificates</strong><p>Use certificates with a valid trust chain and hostname; renew them before expiry.</p></div></li><li><span class="recommendation-icon green"><i class="fa-solid fa-user-shield"></i></span><div><strong>Strengthen authentication</strong><p>Use modern authenticated submission, unique credentials, and multi-factor authentication.</p></div></li></ul></article>
+      </div>
+      <article class="panel table-panel"><div class="panel-heading"><div><h3>Dataset records with findings</h3><p>First 25 records with one or more configuration checks triggered</p></div></div><div class="table-scroll"><table><thead><tr><th>RECORD</th><th>POSTURE LABEL</th><th>RULE-BASED SCORE</th><th>RISK</th><th>OBSERVED FINDINGS</th></tr></thead><tbody id="risk-records"></tbody></table></div></article>
+    </section>
+
+    <section id="tab-management" class="tab-panel" aria-labelledby="title-management">
+      <div class="page-heading"><div><p class="eyebrow">MACHINE LEARNING / OPERATIONS</p><h2 id="title-management">Model management</h2><p class="page-description">Review the selected saved model, its training source, and evaluation results.</p></div><button class="button button-primary" data-action="train"><i class="fa-solid fa-rotate"></i>Retrain models</button></div>
+      <div class="content-grid two-columns">
+        <article class="panel model-summary"><div class="panel-heading"><div><h3><i class="fa-solid fa-brain blue-text"></i>Selected classifier</h3><p>Best weighted F1 score from the latest comparison</p></div></div><div id="management-model-summary" class="model-summary-content">Loading model status…</div></article>
+        <article class="panel"><div class="panel-heading"><div><h3>Training pipeline</h3><p>Saved locally with Joblib</p></div></div><ul class="pipeline-list"><li><span>Input features</span><strong>8 configuration columns</strong></li><li><span>Numeric preprocessing</span><strong>Median imputation · standard scaling</strong></li><li><span>Categorical preprocessing</span><strong>Mode imputation · one-hot encoding</strong></li><li><span>Evaluation</span><strong>Stratified hold-out · weighted metrics</strong></li><li><span>Selected model artifact</span><code>models/securemailscope.joblib</code></li></ul></article>
+      </div>
+      <div id="management-message" class="inline-message hidden" role="status"></div>
+      <article class="panel table-panel"><div class="panel-heading"><div><h3>Available classifier results</h3><p>Evaluation results from the latest completed training run</p></div></div><div class="table-scroll"><table><thead><tr><th>CLASSIFIER</th><th>ACCURACY</th><th>PRECISION</th><th>RECALL</th><th>F1 SCORE</th><th>STATUS</th></tr></thead><tbody id="management-table"></tbody></table></div></article>
+    </section>
+  </main>
+
+  <footer class="footer"><span>SecureMailScope</span><span>Local decision-support prototype · No live mail-server scanning</span></footer>
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+  <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
+</body>
+</html>
